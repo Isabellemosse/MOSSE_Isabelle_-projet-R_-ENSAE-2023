@@ -1,0 +1,6 @@
+"0","# Convertir les colonnes ""date_depart"" et ""date_arrivee"" en objets de type ""POSIXct"" (si nécessaire)"
+"0","projet_r$start <- ymd_hms(projet_r$start)"
+"0","projet_r$submissiondate <- ymd_hms(projet_r$submissiondate)"
+"0","# Calculer l'intervalle de temps entre la date de départ et la date d'arrivée"
+"0","projet_r$intervalle_temps <- interval(projet_r$start, projet_r$submissiondate)"
+"0",""

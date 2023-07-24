@@ -1,0 +1,470 @@
+---
+#title: "Projet final - Logiciel statistique R"
+#author: "Isabelle Danielle MOSSE"
+#date: "2023-07-24"
+output: 
+  pdf_document: 
+    #toc: yes
+    toc_depth: 6
+    fig_height: 4
+    fig_caption: yes
+    number_sections: yes
+header-includes:
+      \usepackage{pdfpages}
+      \usepackage{graphicx}
+---
+
+\includepdf{page.pdf}
+
+\tableofcontents
+
+\newpage
+# partie 1
+
+## Préparation des données
+
+```{r setup, include=FALSE}
+library(readxl)
+library(tidyverse)
+library(gtsummary)
+library(labelled)
+library(gt)
+```
+
+
+### Importation et mise en forme
+
+
+```{r message=FALSE, warning=FALSE}
+##Importation et mise en forme##
+projet <- read_excel("Base_Partie 1.xlsx",
+                     sheet = "sheet1",
+                     range = NULL,
+                     col_names = TRUE,
+                     col_types = NULL,
+                     na = "")
+
+# Sélection les variables
+variables <- select(projet, matches("ˆ[qfgst]"))
+
+#Résumé des valeurs manquantes par variable
+val_manq <- variables %>%
+summarise_all(~ sum(is.na(.)))
+
+#tableau qui resume les valeurs manquantes par variable
+# Calcul du nombre total de valeurs manquantes par variable
+table_manquantes <- data.frame(
+ Variable = names(projet),
+ `Nombredevaleursmanquante` = colSums(is.na(projet))
+)
+# tableau "gtsummary" avec les variables et le nombre de valeurs manquantes
+table_manquantes_table <-
+     gt(table_manquantes)
+table_manquantes_table
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# Vérifier les valeurs manquantes pour la variable "key"
+valeurs_manquantes_key <- subset(projet, is.na(key))
+if (nrow(valeurs_manquantes_key) > 0) {
+pmes_concernees <- valeurs_manquantes_key$key
+cat("Les PME concernées avec des valeurs manquantes pour 'key' sont :", pmes_concernees)
+} else {
+cat("Il n'y a pas de valeurs manquantes pour la variable 'key'.")
+}
+```
+###  Création de variables
+
+```{r message=FALSE, warning=FALSE}
+
+# Renommer les variables "q1", "q2" et "q23" respectivement en "region", "departement" et "sexe"
+projet <- projet %>%
+  rename(region = q1,
+         departement = q2,
+         sexe = q23)
+
+# Créer la variable sexe_2
+projet$sexe_2 <- ifelse(projet$sexe == "Femme", 1, 0)
+
+# Sélectionner les variables key et les variables correspondantes dans un nouveau data.frame
+langues <- projet %>%
+  select(key, starts_with("q24a"))
+
+# Créer la variable parle
+langues$parle <- rowSums(langues[, -1])
+
+# Sélectionner les variables key et parle
+langues <- select(langues, key, parle)
+# Fusionner les data.frames projet et langues
+projet_r <- merge(projet, langues, by = "key")
+```
+
+## Analyses descriptives
+
+```{r message=FALSE, warning=FALSE}
+#labelisation des variables
+var_label(projet_r$q25) <- "Niveau d'instruction"
+var_label(projet_r$q12) <- "Statut juridique"
+var_label(projet_r$q81) <- "Locataire/propriétaire"
+#précisons le français comme langue de sortie
+theme_gtsummary_language("fr", decimal.mark = ",", big.mark = " ")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+#tableau récapitulatif des statistiques descriptives
+tab1 <-projet_r %>%
+tbl_summary(
+include = c(sexe, q12, q25, q81),
+statistic = all_categorical() ~ "{p} % ({n}/{N})",
+)%>%
+bold_labels()
+## repartition des pme suivant le statut juridique et le sexe
+tab2 <- projet_r %>%
+tbl_summary(
+include = c(sexe, q25, q12, q81),
+by = sexe,
+statistic = all_categorical() ~ "{p}% ({n}/{N})",
+percent = "row"
+)%>%
+add_overall()%>%
+modify_header(
+  all_stat_cols() ~ "**{level}** ({n} obs.)"
+) %>%
+bold_labels()
+#combinons les tables tab1 et tab2
+gtsummary::tbl_merge(
+list(tab1, tab2),
+tab_spanner = c("statistiques univarié", "statistiques bivariées")
+)## intitulé des groupes de tableau associés
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+#statistique descriptive de notre choix sur les autres variables
+#analyse par filiere
+var_label(projet_r$q24) <- "Age du dirigeant"
+var_label(projet_r$filiere_1) <- "filiere arachide"
+var_label(projet_r$filiere_2) <- "filiere anacarde"
+var_label(projet_r$filiere_3) <- "filiere mangue"
+var_label(projet_r$filiere_4) <- "filiere riz"
+theme_gtsummary_language("fr", decimal.mark = ",", big.mark = " ")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+projet_r %>%
+tbl_summary(
+  include = c(q24, region, departement, parle),
+  type = q24 ~ "continuous2",
+  by = sexe,
+  statistic = list(
+   all_continuous2() ~ c("{median} ({p25} - {p75}", "{mean} ({sd})", "{min} - {max}"))
+)%>%
+add_overall()%>%
+bold_labels()
+```
+
+
+```{r message=FALSE, warning=FALSE}
+#Analyse par filiere
+#filiere suivant le sexe du dirigeant
+tab3 <- projet_r %>%
+tbl_summary(
+include = c(sexe, filiere_1, filiere_2, filiere_3, filiere_4),
+by = sexe,
+statistic = ~ "{p}% ({n})",
+percent = "row"
+)%>%
+add_overall()%>%
+modify_header(
+all_stat_cols() ~ "**{level}** ({n} obs.)"
+) %>%
+bold_labels()
+
+#filiere suivant la langue parlée
+tab4 <- projet_r %>%
+tbl_summary(
+include = c(parle, filiere_1, filiere_2, filiere_3, filiere_4),
+by = parle,
+statistic = ~ "{p}% ({n})",
+percent = "row"
+)%>%
+add_overall()%>%
+modify_header(
+all_stat_cols() ~ "**{level}** ({n} obs.)"
+) %>%
+bold_labels()
+
+#filiere suivant la region
+tab5 <- projet_r %>%
+tbl_summary(
+include = c(region, filiere_1, filiere_2, filiere_3, filiere_4),
+by = region,
+statistic = ~ "{p}% ({n})",
+percent = "row"
+)%>%
+add_overall()%>%
+modify_header(
+all_stat_cols() ~ "**{level}** ({n} obs.)"
+) %>%
+bold_labels()
+#combinons les tables tab1 et tab2
+gtsummary::tbl_stack(
+list(tab3, tab4, tab5),
+group_header = c("filiere suivant le sexe du dirigeant", "filiere suivant la langue parlée", "#filiere suivant la region")
+)
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library("lubridate")
+library("magrittr")
+```
+
+
+```{r}
+# Convertir les colonnes "date_depart" et "date_arrivee" en objets de type "POSIXct" (si nécessaire)
+projet_r$start <- ymd_hms(projet_r$start)
+projet_r$submissiondate <- ymd_hms(projet_r$submissiondate)
+# Calculer l'intervalle de temps entre la date de départ et la date d'arrivée
+projet_r$intervalle_temps <- interval(projet_r$start, projet_r$submissiondate)
+
+```
+
+
+```{r}
+# intervalle de temps entre la date de receuil et de soumissions des informations des informations de la pme suivant la region
+projet_r$duree <- as.duration(projet_r$intervalle_temps)
+# creation d'un tatbleau qui donne la durée par region
+projet_r %>%
+  tbl_summary(
+    include = c(region, duree),
+    type = duree ~ "continuous2",
+    by = region,
+    statistic = list(
+      all_continuous2() ~ c("{mean} ({sd})", "{min}", "{max}"))
+)%>%
+add_overall()
+```
+
+## cartographie
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(ggspatial)
+```
+
+
+```{r}
+
+# Créer un objet sf à partir du data.frame projet en utilisant les coordonnées géographiques
+projet_map <- st_as_sf(projet, coords = c("gps_menlongitude", "gps_menlatitude"), crs = 4326)
+# Récupérer les frontières des régions du Sénégal
+senegal_regions <- rnaturalearth:: ne_states(country = "Senegal", returnclass = "sf")
+# Création d'un data.frame contenant les coordonnées et les noms des régions du Sénégal
+regions <- data.frame(
+region = c("Dakar", "Thiès", "Fatick", "Kaolack", "Kaffrine", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Ziguinchor"),
+lon = c(-17.455390, -16.920337, -16.412964, -16.073365, -15.687128, -12.220533, -14.981073, -16.246381, -13.499487, -16.519660, -16.661667, -13.757211, -16.273499),
+lat = c(14.693425, 14.798658, 14.339950, 14.151858, 14.101164, 12.559404, 12.887101, 15.614472, 15.650970, 16.018926, 12.708056, 13.754040, 12.585816)
+)
+
+# Représentation spatiale des PME suivant le sexe avec ggplot2
+ggplot() +
+geom_sf(data = senegal_regions, fill = "cyan4" , color = "black") + # Fond de carte du Sénégal avec contours noirs
+geom_text(data = regions, aes(x = lon, y = lat, label = region), size = 3, nudge_y = 0.1) + # Ajout des noms des régions
+annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"))+
+geom_point(data = projet_map, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2], color = as.factor(sexe)), size = 3) +
+labs(title = "Répartition des PME par sexe", color = "Sexe") +
+theme_minimal()
+```
+
+
+```{r}
+# Représentation spatiale des PME suivant le niveau d'instruction avec ggplot2
+ggplot() +
+geom_sf(data = senegal_regions, fill = "sandybrown"   , color = "gold4" ) + # Fond de carte du Sénégal avec contours noirs
+geom_text(data = regions, aes(x = lon, y = lat, label = region), size = 3, nudge_y = 0.1) + # Ajout des noms des régions
+annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"))+
+geom_point(data = projet_map, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2], color = as.factor(q25)), size = 3) +
+labs(title = "Répartition des PME par niveau d'instruction", color = "Niveau d'instruction") +
+theme_minimal()
+```
+
+## autre analyse spaciale
+
+  Nous allons faire une analyse spaciale des PME suivant le statut juridique
+```{r}
+# Représentation spatiale des PME suivant le niveau d'instruction avec ggplot2
+ggplot() +
+geom_sf(data = senegal_regions, fill = "wheat3", color = "aquamarine") + # Fond de carte du Sénégal avec contours noirs
+geom_text(data = regions, aes(x = lon, y = lat, label = region), size = 3, nudge_y = 0.1) + # Ajout des noms des régions
+annotation_north_arrow(location = "bl", which_north = "true", pad_x = unit(0.1, "cm"), pad_y = unit(0.1, "cm"))+
+geom_point(data = projet_map, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2], color = as.factor(q12)), size = 3) +
+labs(title = "Répartition des PME suivant le statut juridique", color = "statut juridique") +
+theme_minimal()
+
+
+```
+
+# partie 2
+
+## Nettoyage et gestion des données
+```{r}
+library(broom)
+# Charger les données depuis le fichier Excel
+data <- read_excel("Base_Partie 2.xlsx",
+             sheet = "data",
+             range = NULL,
+             col_names = TRUE,
+             col_types = NULL,
+             na = "")
+# Nettoyage et gestion des données
+# Remplacer les valeurs aberrantes (999) par NA dans la colonne endline_age
+data <- data %>%
+  mutate(age = ifelse(age == 999, NA, age))
+# Calculer la moyenne des âges sans prendre en compte les valeurs manquantes (NA)
+mean_age <- mean(data$age, na.rm = TRUE)
+# Remplacer les valeurs manquantes (NA) par la moyenne des autres âges
+data$age[is.na(data$age)] <- mean_age
+# Arrondir à l'entier supérieur
+data$age <- ceiling(data$age)
+# Renommer la variable "country_destination" en "destination" et définir les valeurs négatives comme manquantes
+data <- data %>%
+  rename(destination = country_destination) %>%
+  mutate(destination = ifelse(destination < 0, NA, destination))
+```
+
+
+```{r}
+
+# Remplacer les valeurs manquantes dans la variable "age" par NA
+data <- data %>%
+  mutate(age = ifelse(is.na(age), NA, age))
+# Créer une nouvelle variable contenant des tranches d'âge de 5 ans en utilisant la variable "age"
+data <- data %>%
+  mutate(age_group = cut(age, breaks = seq(15, max(age) + 5, by = 5), include.lowest = TRUE),
+         age_group = cut(age, breaks = seq(15, max(age) + 5, by = 5), include.lowest = TRUE))
+# Afficher les premières lignes de la nouvelle variable age_group_label
+head(data$age_group)
+```
+
+
+```{r}
+# Créer une nouvelle variable contenant le nombre d'entretiens réalisés par chaque agent recenseur
+data <- data %>%
+  group_by(enumerator) %>%
+  mutate(nombre_ent = n()) %>%
+  ungroup()
+# Créer une nouvelle variable qui affecte aléatoirement chaque répondant à un groupe de traitement (1) ou de contrôle (0)
+set.seed(42) # fixons l'aléa
+data <- data %>%
+  mutate(treatment_group = sample(c(0, 1), nrow(.), replace = TRUE))
+```
+
+
+```{r}
+# Charger les données depuis le fichier Excel
+district_data <- read_excel("Base_Partie 2.xlsx",
+                      sheet = "district",
+                      range = NULL,
+                      col_names = TRUE,
+                      col_types = NULL,
+                      na = "")
+# Fusionner la taille de la population de chaque district avec l'ensemble de données
+data2 <- left_join(data, district_data, by = "district")
+# afficher les premieres lignes
+head(data2)
+```
+
+
+```{r}
+# Calculer la durée de l'entretien et indiquer la durée moyenne de l'entretien par enquêteur
+data2 <- data2 %>%
+mutate(duree = endtime - starttime,
+duree_moy = mean(duree, na.rm = TRUE))
+#affichage des premieres lignes
+head(data2)
+```
+
+
+```{r}
+# Renommer toutes les variables en ajoutant le préfixe "endline_" à l'aide de sapply et setNames
+
+#creation un objet "prefix" qui prend la valeur "endline_"
+prefix <- "endline_"
+# Utilisation de la fonction rename_with() pour ajouter le préfixe
+data2 <- data2 %>%
+rename_with(~ paste0(prefix, .), everything())
+```
+
+## Analyse et visualisation des données
+```{r}
+# Creation d'un tableau récapitulatif contenant l'âge moyen et le nombre moyen d'enfants par district
+
+data2 %>%
+tbl_summary(
+include = c(endline_age, endline_children_num),
+by = endline_district,
+statistic = all_continuous()~ "Moy. : {mean}"
+)%>%
+add_overall()
+```
+
+
+```{r}
+# Testez si la différence d'âge entre les sexes est statistiquement significative au niveau de 5 %
+test <- lm(endline_age ~ endline_sex, data = data2)
+test%>%gtsummary::tbl_regression(add_estimate_to_reference_rows = TRUE)
+```
+
+
+```{r}
+# Créer un nuage de points de l'âge en fonction du nombre d'enfants (ggplot)
+ggplot(data2, aes(x = endline_children_num, y = endline_age)) +
+geom_point() +
+labs(x = "Nombre d'enfants", y = "Âge") +
+ggtitle("Nuage de points de l'âge en fonction du nombre d'enfants")
+```
+
+
+```{r}
+# Effectuer l'analyse de régression linéaire
+modele_regression <- lm(endline_intention ~ endline_treatment_group, data = data2)
+# Obtenir les résultats de l'analyse
+summary(modele_regression)
+# Obtenir les résultats de l'analyse dans un tableau
+modele_regression%>%gtsummary::tbl_regression()## le coefficient de regression est négatif et on constate que la liaison entre les deux variables n'est pas significative. En conclusion l'appartenance à un groupe de traitement n'explique pas l'intention de migrer.
+```
+
+
+```{r}
+# Créez un tableau de régression avec 3 modèles
+model_A <- lm(endline_intention ~ endline_treatment_group, data = data2)
+model_B <- lm(endline_intention ~ endline_treatment_group + endline_age + endline_sex, data = data2)
+model_C <- lm(endline_intention ~ endline_treatment_group + endline_age + endline_sex + endline_district, data = data2)
+# Stocker les résultats des modèles dans un tableau
+tabA <- model_A%>%gtsummary::tbl_regression(add_estimate_to_reference_rows = TRUE)
+tabB <- model_A%>%gtsummary::tbl_regression(add_estimate_to_reference_rows = TRUE)
+tabC <- model_A%>%gtsummary::tbl_regression(add_estimate_to_reference_rows = TRUE)
+
+#sortons le tableau de la regression
+stacked_table <- gtsummary::tbl_stack(
+list(tabA, tabB, tabC),
+group_header = c("traitement sur les intentions", "traitement sur les intentions en tenant compte de l’âge et du sexe", "traitement sur les intentions en tenant compte de l’âge et du sexe en tenant compte du district") ## intitulé des groupes de tableau associés
+)
+stacked_table
+```
+
+# partie 3
+
+Voici le lien de l'application RShinny https://isabellemosse.shinyapps.io/MIDapp/
+Il est nécessaire de choisir un pays une fois l'application ouverte afin que la carte ne s'affiche.
+
+
+

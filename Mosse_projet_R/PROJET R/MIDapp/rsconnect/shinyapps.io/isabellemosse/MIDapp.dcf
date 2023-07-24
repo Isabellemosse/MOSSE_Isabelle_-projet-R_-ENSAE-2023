@@ -1,0 +1,12 @@
+name: MIDapp
+title: MIDapp
+username: isabellemosse
+account: isabellemosse
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 9501682
+bundleId: 7491656
+url: https://isabellemosse.shinyapps.io/MIDapp/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

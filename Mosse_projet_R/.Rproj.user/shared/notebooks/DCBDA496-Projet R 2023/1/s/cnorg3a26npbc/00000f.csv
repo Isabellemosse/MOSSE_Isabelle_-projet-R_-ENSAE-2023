@@ -1,0 +1,5 @@
+"0","# Effectuer l'analyse de régression linéaire
+modele_regression <- lm(intention ~ groupe_traitement, data = data2)
+"
+"2","Error in eval(predvars, data, env) : object 'intention' not found
+"

@@ -1,0 +1,2 @@
+"0","# Obtenir les résultats de l'analyse dans un tableau"
+"0","modele_regression%>%gtsummary::tbl_regression()## le coefficient de regression est négatif et on constate que la liaison entre les deux variables n'est pas significative. En conclusion l'appartenance à un groupe de traitement n'explique pas l'intention de migrer."

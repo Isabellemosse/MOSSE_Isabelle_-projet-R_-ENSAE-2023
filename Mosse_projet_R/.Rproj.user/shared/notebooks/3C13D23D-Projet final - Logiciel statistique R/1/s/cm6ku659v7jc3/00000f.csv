@@ -1,0 +1,8 @@
+"0","#statistique descriptive de notre choix sur les autres variables"
+"0","#analyse par filiere"
+"0","var_label(projet_r$q24) <- ""Age du dirigeant"""
+"0","var_label(projet_r$filiere_1) <- ""filiere arachide"""
+"0","var_label(projet_r$filiere_2) <- ""filiere anacarde"""
+"0","var_label(projet_r$filiere_3) <- ""filiere mangue"""
+"0","var_label(projet_r$filiere_4) <- ""filiere riz"""
+"0","theme_gtsummary_language(""fr"", decimal.mark = "","", big.mark = "" "")"

@@ -1,0 +1,6 @@
+"0","# Calculer la durée de l'entretien et indiquer la durée moyenne de l'entretien par enquêteur"
+"0",""
+"0","data2 <- data2 %>%"
+"0","  mutate(duree = endtime - starttime,"
+"0","duree_moy = mean(duree, na.rm = TRUE))"
+"0","head(data2)"

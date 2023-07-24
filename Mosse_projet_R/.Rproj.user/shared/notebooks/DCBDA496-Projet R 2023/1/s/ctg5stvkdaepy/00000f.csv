@@ -1,0 +1,5 @@
+"0","# Créer un nuage de points de l'âge en fonction du nombre d'enfants (ggplot)"
+"0","ggplot(data2, aes(x = endline_children_num, y = endline_age)) +"
+"0","  geom_point() +"
+"0","  labs(x = ""Nombre d'enfants"", y = ""Âge"") +"
+"0","  ggtitle(""Nuage de points de l'âge en fonction du nombre d'enfants"")"

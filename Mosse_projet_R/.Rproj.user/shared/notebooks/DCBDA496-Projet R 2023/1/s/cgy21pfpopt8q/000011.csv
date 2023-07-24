@@ -1,0 +1,8 @@
+"0",""
+"0","# Représentation spatiale des PME suivant le niveau d'instruction avec ggplot2"
+"0","ggplot() +"
+"0","  geom_sf(data = senegal_regions, fill =  ""wheat"", color = ""aquamarine"") +  # Fond de carte du Sénégal avec contours noirs"
+"0","  geom_text(data = regions, aes(x = lon, y = lat, label = region), size = 3, nudge_y = 0.1) +  # Ajout des noms des régions"
+"0","  geom_point(data = projet_map, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2], color = as.factor(q25)), size = 3) +"
+"0","  labs(title = ""Répartition des PME par niveau d'instruction"", color = ""Niveau d'instruction"") +"
+"0","  theme_minimal()"

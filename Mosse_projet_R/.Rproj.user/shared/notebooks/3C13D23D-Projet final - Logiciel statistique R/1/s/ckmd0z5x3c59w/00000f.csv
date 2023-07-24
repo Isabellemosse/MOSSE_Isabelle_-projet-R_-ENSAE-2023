@@ -1,0 +1,7 @@
+"0","# Renommer toutes les variables en ajoutant le préfixe ""endline_"" à l'aide de sapply et setNames"
+"0",""
+"0","#creation un objet ""prefix"" qui prend la valeur ""endline_"""
+"0","prefix <- ""endline_"""
+"0","# Utilisation de la fonction rename_with() pour ajouter le préfixe"
+"0","data2 <- data2 %>%"
+"0","rename_with(~ paste0(prefix, .), everything())"
